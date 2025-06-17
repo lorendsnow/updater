@@ -1,0 +1,20 @@
+database:
+  host: localhost
+  port: 3306
+  username: updater
+  password: updater
+  name: default_db
+service:
+  check-interval: 1h
+  csv-urls:
+    - "https://example.com/data1.csv"
+    - "https://example.com/data2.csv"
+    - "https://example.com/data3.csv"
+  blue-table: updates_blue
+  green-table: updates_green
+http:
+  timeout: 30s
+  retries: 3
+logger:
+  level: info
+  format: stdout
