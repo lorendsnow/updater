@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/lorendsnow/updater/cmd"
+	cfg "github.com/lorendsnow/updater/internal/config"
 )
 
 // UpdateService periodically downloads csv files from the City's website and
@@ -48,7 +48,7 @@ type Table struct {
 //
 // The UpdateService will check for updates every updateEvery duration, and
 // will use the blue and green tables to store the data.
-func NewUpdateService(config *cmd.Config, logger *slog.Logger) *UpdateService {
+func NewUpdateService(config *cfg.Config, logger *slog.Logger) *UpdateService {
 	return &UpdateService{
 		CheckEvery: config.Service.CheckInterval,
 		BlueTable:  &Table{Name: config.Service.BlueTable},
@@ -69,7 +69,7 @@ func (s *UpdateService) LastUpdatedTable() string {
 }
 
 // ConnectToDatabase connects to the database using the given configuration.
-func (s *UpdateService) ConnectToDatabase(config *cmd.Config) {
+func (s *UpdateService) ConnectToDatabase(config *cfg.Config) {
 	dbConfig := mysql.Config{
 		User:   config.Database.Username,
 		Passwd: config.Database.Password,
