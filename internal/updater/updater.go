@@ -1,8 +1,12 @@
-package main
+// Package updater provides the UpdateService that periodically downloads
+// CSV files from one or more urls and updates the database.
+package updater
 
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -30,6 +34,7 @@ type UpdateService struct {
 	BlueTable  *Table
 	GreenTable *Table
 	Db         *sql.DB
+	Logger     *slog.Logger
 }
 
 // Table represents one of the two blue/green tables the UpdateService will
@@ -43,11 +48,12 @@ type Table struct {
 //
 // The UpdateService will check for updates every updateEvery duration, and
 // will use the blue and green tables to store the data.
-func NewUpdateService(config *cmd.Config) *UpdateService {
+func NewUpdateService(config *cmd.Config, logger *slog.Logger) *UpdateService {
 	return &UpdateService{
 		CheckEvery: config.Service.CheckInterval,
 		BlueTable:  &Table{Name: config.Service.BlueTable},
 		GreenTable: &Table{Name: config.Service.GreenTable},
+		Logger:     logger.WithGroup("updater"),
 	}
 }
 
@@ -63,7 +69,7 @@ func (s *UpdateService) LastUpdatedTable() string {
 }
 
 // ConnectToDatabase connects to the database using the given configuration.
-func (s *UpdateService) ConnectToDatabase(config *cmd.Config) error {
+func (s *UpdateService) ConnectToDatabase(config *cmd.Config) {
 	dbConfig := mysql.Config{
 		User:   config.Database.Username,
 		Passwd: config.Database.Password,
@@ -74,15 +80,23 @@ func (s *UpdateService) ConnectToDatabase(config *cmd.Config) error {
 
 	db, err := sql.Open("mysql", dbConfig.FormatDSN())
 	if err != nil {
-		return err
+		s.Logger.Error("failed to open database connection", "error", err)
+		os.Exit(1)
 	}
 
 	// Ping the database to make sure we have a real connection.
 	if err := db.Ping(); err != nil {
-		return err
+		s.Logger.Error("successfully connected to database, but ping check returned an error",
+			"error", err)
+		os.Exit(1)
 	}
 
 	s.Db = db
-
-	return nil
+	s.Logger.Info(
+		"successfully connected to database",
+		"host",
+		config.Database.Host,
+		"port",
+		config.Database.Port,
+	)
 }
